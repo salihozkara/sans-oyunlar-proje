@@ -1,467 +1,509 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <stdbool.h>
 
-void anaMenu();
-void sansOyunlari();
-void cekilisIstatiskleri();
-void sayial(int alinandizi[], int adet, int ust);
-void rastgeleSayiUretimi(int rastgele[], int ust, int kactane);
-void siralama(int sayilar[], int ust);
-void tutanlar(int d1[], int d2[], int d1l, int d2l);
-void tekrar(int oyun);
-void sansTopu();
-void onNumara();
-void Loto(int ust);
+//------------------------------------------------------------------------------
+//-----------------------------Data Structures----------------------------------
+//------------------------------------------------------------------------------
 
+//-----------------------------Dictionary-------------------------------------
+// integer Key-Value pair
+typedef struct
+{
+    int key;
+    int value;
+} int_key_value;
 
-int puan = 0, puanSayisalLoto = 0, puanSansTopu = 0, puanOnNumara = 0, puanSuperLoto = 0, puanAnlik = 0;
-int istatistik[6][81] = {0};//1 sayısal loto 2 şans topu 3 on numara 4 süper loto 5 şans topu+1
+// integer Key-Value pair list
+typedef struct
+{
+    int length;
+    int_key_value *array;
+} int_dict;
 
-int main() {
-    printf("seed degeri girin:");
-    int seed;
-    scanf("%d", &seed);
-    system("CLS");
-    srand(seed);
-    anaMenu();
+int_dict create_int_dict()
+{
+    int_dict list;
+    list.length = 0;
+    list.array = (int_key_value *)malloc(0);
+    return list;
 }
 
-//--------------------------------------ANA MENÜ---------------------------------------------
-void anaMenu() {
-    printf("\tANA MENU\n\n1.Sans Oyunlari\n2.Cekilis Istatistikleri\n3.Cikis\n\n\tSeciminizi giriniz:");
-    int secim[1];
-    sayial(secim, 1, 3);
-    switch (secim[0]) {
-        case 1:
-            sansOyunlari();
-            break;
-        case 2:
-            cekilisIstatiskleri();
-            break;
-        case 3:
-            printf("emin misiniz? evet icin e hayir icin h giriniz!");
-            int devam;
-            char secim;
-            do {
-                scanf(" %s", &secim);
-                system("CLS");
-                if (secim == 'e' || secim == 'E') {
-                    exit(3);
-                } else if (secim == 'h' || secim == 'H') {
-                    anaMenu();
-                } else {
-                    printf("lutfen e yada h giriniz");
-                    devam = 1;
-                }
-            } while (devam);
-    }
+void free_int_dict(int_dict list)
+{
+    free(list.array);
 }
 
-//------------------------------------------------ŞANS OYUNLARI-----------------------------------------
-void sansOyunlari() {
-    printf("\tSANS OYUNLARI ALT MENUSU\n\n1.Sayisal Loto Oynama\n2.Sans Topu Oynama\n3.On Numara Oynama\n4.Super Loto Oynama\n5.Ana Menu\n\n\t(Toplam odulunuz: %d puan) Seciminizi giriniz:",
-           puan);//puan tüm oyunların puanının toplamı
-    int secim[1];//sayıal fonksiyonum dizi ile çalıştğı için 1 elemanlı dizi belirledim
-    sayial(secim, 1, 5);//yukarda belirlediğim dizinin 0. elemanını alıyor
-    switch (secim[0]) {
-        case 1:
-            Loto(49);
-            break;//sayısal loto
-        case 2:
-            sansTopu();
-            break;
-        case 3:
-            onNumara();
-            break;
-        case 4:
-            Loto(54);
-            break;//süperloto
-        case 5:
-            anaMenu();
-            break;
-    }//sınırlamaya gerek yok alınan sayı zaten kontrol ediliyor
+void add_int_dict(int_dict *list, int key, int value)
+{
+    list->array[list->length].key = key;
+    list->array[list->length].value = value;
+    list->length++;
 }
-
-//-------------------------------------------------------istatistik fonksiyonu----------------------------------
-void cekilisIstatiskleri() {
-    /*çekiliş mantığım oyunda kaç sayı var ise 1 fazlası dizi oluşturup her elemanı sıfıra eşitleyip
-     *her sayı çıktığında dizinin çıkan sayıdaki elemanını bir arttırmak
-     *ve sonra en bu diziyi başka diziye aktarıp en büyük elemanı bularak onu yazdırıp sonrasında o
-     *elamanı sıfırlayıp bir sonraki en  büyük elemanı yazdırmak bu işlemi oyunun en çok çıkan kaç sayısı isteniyorsa o kadar tekrar ettirmek*/
-    int max, ust, kac, sayac = 0;
-    int oyun[1], secim[1];//sayıal fonksiyonum dizi ile çalıştğı için 1 elemanlı dizi belirledim
-    printf("hangi oyunun istatisklerini gormek istersiniz\n1.Sayisal Loto \n2.Sans Topu \n3.On Numara \n4.Super Loto \nseciminiz:");
-    sayial(oyun, 1, 4);//hangi oyunun istatistiğinin alınacağının seçimi
-    do {
-        if (oyun[0] == 1) {
-            ust = 49;
-            kac = 6;
-        } else if (oyun[0] == 2) {
-            ust = 34;
-            kac = 5;
-        } else if (oyun[0] == 3) {
-            ust = 80;
-            kac = 10;
-        } else if (oyun[0] == 4) {
-            ust = 54;
-            kac = 6;
-        } else if (oyun[0] == 5) {
-            ust = 14;
-            kac = 1;
-        }
-        int dizi[ust +1];//dizi sıfırdan başladığı için 1 fazlasını alıyorum oyunun son sayısını da istatikte tutabilmesi için
-        for (int j = 0; j < ust + 1; ++j) {
-            dizi[j] = istatistik[oyun[0]][j];//a[0] hangi oyun için istatistik olduğu j de istatistik değerleri ana dizim bozulmasın
-        }//diye başka diziye aktarıp kullanıyorum
-        do {
-            max = 0;
-            for (int i = 0; i < ust + 1; ++i) {//en büyük elemanı bulmak için
-                if (max < dizi[i])
-                    max = dizi[i];
-
-            }
-            int baska[kac];//hangi sayının çıktığını tutan dizi
-            for (int i = 0; i < ust + 1; ++i) {//yazdırma kısmı
-                if (max == dizi[i]) {
-                    baska[sayac] = i;
-                    if (dizi[i] != 0)//ilk oynamadan istatistik isterse veri çıkmaması için
-                        printf("%d den %d tane var\n", baska[sayac], dizi[i]);
-                    sayac++;
-                }
-
-            }
-            if (sayac == ust + 1)//sayac sürekli arttı ise tüm değerler eşittir yani sıfır
-                printf("veri yok\n");
-            for (int i = 0; i < ust + 1; ++i) {//en büyük değeri sıfırlıyor ve sonra diğer en büyüğü buluyor
-                if (max == dizi[i])
-                    dizi[i] = 0;
-            }
-        } while (sayac < kac);//kaç tane en büyük istendi ise o kadar dönmesini sağlıyo
-        if (oyun[0] == 5)//sonsuz döngüye girmesini engelliyo
-            goto w;
-        if (oyun[0] == 2) {
-            oyun[0] = 5;
-            printf("+1 icin:\n");
-        }
-    } while (oyun[0] == 5);//sans oyunundaki +1 için tekrar istatistik buluyor
-    w:
-    printf("ust menu icin 1\nsans oyunlari icin 2\nana menu icin 3\nseciminiz:");//devamında hangi menüye döneceği
-    sayial(secim, 1, 3);
-    switch (secim[0]) {
-        case 1:
-            cekilisIstatiskleri();
-            break;
-        case 2:
-            sansOyunlari();
-            break;
-        case 3:
-            anaMenu();
-            break;
-    }
-}
-
-//----------------------------------KULLANICIDAN SAYI ALMA--------------------------------------
-void sayial(int alinandizi[], int adet, int ust) {
-    for (int j = 0; j < adet; ++j) {
-        alinandizi[j] = 0;
-    }
-    int sayac = 0, gecici = 0;
-    do {
-        int x = 0;
-        if (adet != 1)//seçim aldığım yerlerde sayı giriniz yazmaması için
-            printf("%d. sayi giriniz:", (sayac + 1));
-
-        while (scanf("%d", &gecici) == 0)//scanf de hatalı giriş yapıldı ise döngüye giriyor
-        {
-            printf("lutfen sadece sayi girin!!!\n");
-            if (adet != 1)//seçim aldığım yerlerde sayı giriniz yazmaması için
-                printf("%d. sayi giriniz:", (sayac + 1));
-            if (adet == 1)//secim olan yerler için
-                printf("Seciminizi giriniz:");
-            int c;
-            while ((c = getchar()) != '\n' && c != EOF);//sonsuz döngüye dönüşmesini engelliyor
-        }
-        if (gecici < 1 || gecici > ust) {//girilicek aralığı belirliyor
-            printf("lutfen 1 ile %d arasi girin\n", ust);
-            if (adet == 1)//seçim için
-                printf("Seciminizi giriniz:");
-        } else {
-            for (int i = 0; i < adet; ++i) {
-                if (gecici ==
-                    alinandizi[i]) {//önceki alınan sayılardan birisi ile aynı girildi ise sayının tekrar alınmasını sağlıyor
-                    printf("ayni sayiyi birden cok kullandiniz\n");
-                    x = 1;
-                }
-            }
-            if (x == 0) {
-                alinandizi[sayac] = gecici;//alınan sayı diziye atılıyor
-                sayac++;
-            }
-        }
-    } while (sayac < adet);
-    siralama(alinandizi, adet);//alınan diziyi sıralıyor
-    system("CLS");//ekranı temizler
-}
-
-//--------------------------------------RANDOM SAYI ÜRETME-------------------------------------------------------------
-void rastgeleSayiUretimi(int rastgele[], int ust, int kactane) {
-    for (int i = 0; i < kactane; i++)//kaç tane sayı alınıcağı
+bool const_int_dict(int_dict list, int key)
+{
+    for (int i = 0; i < list.length; i++)
     {
-        rastgele[i] = 1 + rand() % ust;//rastegele alınan sayıların diziye atılması
-        for (int j = 1;
-             j < i + 1; j++) //bilgisayardan alıdığı sayının kendisinden bi önceki alınan sayılar ile kontrol edilmesi
+        if (list.array[i].key == key)
         {
-            if (rastgele[i] ==
-                rastgele[i - j])//eğer aynı sayı iki kere seçildiyse bi önceki aşamaya dönüyor ve tekrar seçiyor
+            return true;
+        }
+    }
+    return false;
+}
+// sort from largest to smallest
+void sort_int_dict_by_value(int_dict *list)
+{
+    int_key_value temp;
+    for (int i = 0; i < list->length; i++)
+    {
+        for (int j = 0; j < list->length - 1; j++)
+        {
+            if (list->array[j].value < list->array[j + 1].value)
             {
+                temp = list->array[j];
+                list->array[j] = list->array[j + 1];
+                list->array[j + 1] = temp;
+            }
+        }
+    }
+}
+//----------------------------- statistics -------------------------------------
+struct statistics
+{
+    int_dict super_loto_statistics;
+    int_dict digital_loto_statistics;
+    int_dict chance_ball_statistics;
+    int_dict chance_ball_one_plus_statistics;
+    int_dict number_ten_statistics;
+};
+struct statistics create_statistics()
+{
+    struct statistics stats;
+    stats.super_loto_statistics = create_int_dict();
+    stats.digital_loto_statistics = create_int_dict();
+    stats.chance_ball_statistics = create_int_dict();
+    stats.number_ten_statistics = create_int_dict();
+    stats.chance_ball_one_plus_statistics = create_int_dict();
+    return stats;
+}
+struct statistics free_statistics(struct statistics stats)
+{
+    free_int_dict(stats.super_loto_statistics);
+    free_int_dict(stats.digital_loto_statistics);
+    free_int_dict(stats.chance_ball_statistics);
+    free_int_dict(stats.number_ten_statistics);
+    free_int_dict(stats.chance_ball_one_plus_statistics);
+    return stats;
+}
+void add_statistics(int_dict *game_statistics, int array[], int length)
+{
+    for (int i = 0; i < length; ++i)
+    {
+        if (const_int_dict(*game_statistics, array[i]))
+        {
+            int_dict *dict = game_statistics;
+            int_key_value *key_value = &dict->array[i];
+            key_value->value++;
+        }
+        else
+        {
+            add_int_dict(game_statistics, array[i], 1);
+        }
+    }
+}
+void print_statistics(int_dict game_statistics)
+{
+    sort_int_dict_by_value(&game_statistics);
+    for (int i = 0; i < game_statistics.length; ++i)
+    {
+        printf("%d: %d\n", game_statistics.array[i].key, game_statistics.array[i].value);
+    }
+}
+
+//-----------------------------Points-------------------------------------
+struct points
+{
+    int super_loto_points;
+    int digital_loto_points;
+    int chhance_ball_points;
+    int number_ten_points;
+};
+struct points create_points()
+{
+    struct points points;
+    points.super_loto_points = 0;
+    points.digital_loto_points = 0;
+    points.chhance_ball_points = 0;
+    points.number_ten_points = 0;
+    return points;
+}
+int total_points(struct points points)
+{
+    int points_sum = 0;
+    points_sum += points.super_loto_points;
+    points_sum += points.digital_loto_points;
+    points_sum += points.chhance_ball_points;
+    points_sum += points.number_ten_points;
+    return points_sum;
+}
+// function prototypes
+int get_seed();
+int get_int_by_range(int min, int max);
+int get_int();
+void get_int_array_by_range(int array[], int size, int min, int max);
+void generate_random_array(int array[], int size, int min, int max);
+void short_by_int_array(int array[], int length);
+int compare_int_arrays(int array1[], int array2[], int length, int length2);
+int calculate_points(int matches, int score_coefficient, int condition);
+void super_lotto();
+void digital_lotto();
+void chance_ball();
+void number_ten();
+void main_menu();
+void games_menu();
+void statistics_menu();
+void print_inputs(int user_inputs[], int computer_inputs[], int user_inputs_length, int computer_inputs_length);
+
+// variables
+struct statistics stats;
+struct points points;
+
+// free memory
+void free_memory()
+{
+    free_statistics(stats);
+}
+
+// Function: main
+int main()
+{
+    stats = create_statistics();
+    points = create_points();
+    int seed = get_seed();
+    system("cls");
+    srand(seed);
+    while (true)
+    {
+        main_menu();
+    }
+    return 0;
+}
+
+// function that gets the seed value from the user
+int get_seed()
+{
+    printf("Enter a seed value: ");
+    int seed = get_int();
+    return seed;
+}
+
+// function that takes an int value in a range from the user
+int get_int_by_range(int min, int max)
+{
+    int value;
+    while (scanf("%d", &value) != 1 || value < min || value > max)
+    {
+        printf("Invalid input. Please try again: ");
+        while (getchar() != '\n');
+    }
+    return value;
+}
+// function that gets an integer from the user
+
+int get_int()
+{
+    return get_int_by_range(INT_MIN, INT_MAX);
+}
+
+// function that takes a different int array from the user
+
+void get_int_array_by_range(int array[], int size, int min, int max)
+{
+    for (int i = 0; i < size; i++)
+    {
+        printf("Enter value %d: ", i + 1);
+        array[i] = get_int_by_range(min, max);
+        for (int j = 0; j < i; j++)
+        {
+            if (array[i] == array[j])
+            {
+                printf("Value %d is repeated. Please try again: ", i + 1);
                 i--;
-            }
-        }
-    }
-    siralama(rastgele, kactane);//dizinin sıralanması
-}
-
-//---------------------------------SIRALAMA FONKSİYONU------------------------------
-void siralama(int dizi[], int ust) {
-    for (int k = 0; k < ust; ++k)//kaç sayının sıralanacağı
-    {
-        for (int i = 0; i < ust - 1; ++i) {
-            int tut;
-            if (dizi[i] > dizi[i + 1]) {
-                tut = dizi[i];
-                dizi[i] = dizi[i + 1];
-                dizi[i + 1] = tut;
+                break;
             }
         }
     }
 }
 
-//-------------------İKİ DİZİDEKİ EŞLEŞENLER----------------------------------------------------------
-void tutanlar(int d1[], int d2[], int d1l, int d2l) {
-    for (int i = 0; i < d1l; ++i) //tutan sayıların kontrol edilmesi
+// function that generates a random array of non-identical integers in a range
+void generate_random_array(int array[], int size, int min, int max)
+{
+    int i = 0;
+    while (i < size)
     {
-        for (int j = 0; j < d2l; ++j) {
-            if (d1[j] == d2[i]) {
-                printf("tutan=%2d\n", d2[i]);
+        int random = rand() % (max - min + 1) + min;
+        int j = 0;
+        while (j < i)
+        {
+            if (array[j] == random)
+            {
+                break;
+            }
+            j++;
+        }
+        if (j == i)
+        {
+            array[i] = random;
+            i++;
+        }
+    }
+}
+
+// function that sorts integer array with bubble algorithm
+void short_by_int_array(int array[], int length)
+{
+    for (int i = 0; i < length; ++i)
+    {
+        for (int j = 0; j < length; ++j)
+        {
+            int temp;
+            if (array[i] < array[j])
+            {
+                temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
             }
         }
     }
 }
 
-//-------------------TEKRAR OYNAMA FONKSİYONU----------------------------------------------------------
-void tekrar(int oyun) {
-    puanAnlik = 0;//yeni oyun başlayacağı zaman puanı sıfırlamak için
-    printf("tekrar oynamak ister misiniz? evet icin e hayir icin h giriniz!");
-    int devam;
-    char secim;
-    do {
-        scanf(" %s", &secim);//%s daha az hata veriyor
-
-        if (secim == 'e' || secim == 'E') {
-            system("CLS");
-            if (oyun == 1)
-                Loto(49);//sayısal loto
-            else if (oyun == 2)
-                sansTopu();
-            else if (oyun == 3)
-                onNumara();
-            else if (oyun == 4)
-                Loto(54);//süper loto
-        } else if (secim == 'h' || secim == 'H') {
-            system("CLS");
-            sansOyunlari();
-        } else {
-            printf("lutfen e yada h giriniz");
-            devam = 1;//döngünün devam etmesi için
-        }
-    } while (devam);
-}
-
-//--------------------------------------------------OYUNLAR---------------------------------
-//-------------------------------------------------------------------------------------------
-void sansTopu() {
-    int oyun = 2, i, sayac = 0, sayac2 = 0, sayilar[5], rastgele[5], sayi[1], random;
-    printf("SANS TOPU\n---------------\n");
-    //--------------------------------kullanıcıdan alınan sayı-------------------------------------------
-    sayial(sayilar, 5, 34);
-    printf("+1. sayi:");
-    sayial(sayi, 1, 14);
-    //------------------------------bilgisayarın sayı seçmesi------------------------------------------------
-    rastgeleSayiUretimi(rastgele, 34, 5);
-    random = 1 + rand() % 14;
-    printf("----------------\n");
-    sayac = 0;
-    sayac2 = 0;
-    if (sayi[0] == random)sayac2++;//+1 in tuttuğu
-    istatistik[5][random]++;//+1 in istatistiği
-    //-------------------------------istatistik hesaplama-------------------------------
-    for (int l = 0; l < 5; ++l) {
-        for (int j = 0; j <= 34; ++j) {
-            if (rastgele[l] == j)
-                istatistik[oyun][j]++;
-        }
-    }
-//----------------------------------ekrana bastırma----------------------------
-    for (i = 0; i < 5; ++i) //sayıları yazdırma
+// Function that compares two integer arrays and returns the number of matches
+int compare_int_arrays(int array1[], int array2[], int length, int length2)
+{
+    int matches = 0;
+    for (int i = 0; i < length; i++)
     {
-        printf("k=%d\tb=%d\n", sayilar[i], rastgele[i]);
-    }
-    printf("----------------\n"
-           "k2=%d\tb2=%d\n", sayi[0], random);
-//------------------------------hangi sayıların tuttuğu-----------------------------------------------
-
-    for (i = 0; i < 5; ++i) //tutan sayıların kontrol edilmesi
-    {
-        for (int j = 0; j < 5; ++j) {
-            if (rastgele[j] == sayilar[i]) {
-                printf("tutan=%2d\n", sayilar[i]);
-                sayac++;
+        for (int j = 0; j < length2; j++)
+        {
+            if (array1[i] == array2[j])
+            {
+                matches++;
+                printf("%d ", array1[i]);
             }
         }
     }
-
-//-------------------------------------------------------------------------------------------------
-    int carpim = 1;
-    int sayac3 = sayac + sayac2;
-    if (sayac3 > 2) {
-        for (int i = 0; i < (sayac3 - 2); i++) {
-            carpim = carpim * 4;
-        }
-        if (sayac2 == 0)puanAnlik = carpim * 2;
-        else puanAnlik = carpim;
-    } else if (sayac == 1 && sayac2 == 1) {
-        puanAnlik = 2;
-    }
-
-    puanSansTopu += puanAnlik;
-    puan += puanAnlik;//burdan alınan puanın genel puana atılması
-//--------------------------------------------------------------------------------------------------
-    if (sayi[0] == random)
-        printf("tutan=%2d\n", sayi[0]);
-    printf("%d+%d tane tutturunuz\n", sayac, sayac2);
-    printf("----------------\n");
-    printf("bu elki puaniniz:%d\n", puanAnlik);
-    printf("simdiye kadarki sans topu puaniniz:%d\n", puanSansTopu);//kaç puan aldığı
-
-//---------------------------tekrar oynamak istemesi sorulması------------------------
-    tekrar(oyun);
+    return matches;
 }
 
-//--------------------------------------------------------------------------------
-void onNumara() {
-    int i, oyun = 3, sayac = 0, sayilar[10], rastgele[22];
+//----------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------Games--------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
-    printf("ON NUMARA\n---------------\n");
-    printf("----------------\n");
-    //--------------------------------kullanıcıdan alınan sayı-------------------------------------------
-    sayial(sayilar, 10, 80);
-    //------------------------------bilgisayarın sayı seçmesi------------------------------------------------
-    rastgeleSayiUretimi(rastgele, 80, 22);
-
-    sayac = 0;
-    for (i = 0; i < 22; ++i) {
-        for (int j = 0; j < 10; ++j) {
-            if (rastgele[i] == sayilar[j]) {
-                sayac++;//kaç tane tuttuğu
-            }
-        }
-    }
-
-    for (i = 0; i < 10; ++i) //sayıları yazdırma
+// function that calculates points
+int calculate_points(int matches, int score_coefficient, int condition)
+{
+    if (matches > condition)
     {
-        printf("k=%d\tb=%d\tb=%d\t", sayilar[i], rastgele[i], rastgele[i + 10]);
-        if (i == 0)
-            printf("b=%d\tb=%d", rastgele[20], rastgele[21]);
+        return pow(matches + 2, score_coefficient);
+    }
+    return 0;
+}
+
+// Game function
+void game(int max, int *point, int_dict *gameStats, int score_coefficient, int user_len, int computer_len, char *gameName, int condition, int a)
+{
+    printf("-------------------%s-------------------\n", gameName);
+    int user_inputs[user_len];
+    int computer_inputs[computer_len];
+    get_int_array_by_range(user_inputs, user_len, 1, max);
+    generate_random_array(computer_inputs, computer_len, 1, max);
+    short_by_int_array(user_inputs, user_len);
+    short_by_int_array(computer_inputs, computer_len);
+    print_inputs(user_inputs, computer_inputs, user_len, computer_len);
+    printf("Matches:");
+    int matches = compare_int_arrays(user_inputs, computer_inputs, user_len, computer_len);
+    printf("\n");
+    printf("%s: %d\n", "Number of matches", matches);
+    printf("%s: %d\n", "Points", calculate_points(matches - a, score_coefficient, condition));
+    *point += calculate_points(matches - a, score_coefficient, condition);
+    printf("%s: %d\n", "Total points", total_points(points));
+    add_statistics(gameStats, computer_inputs, computer_len);
+}
+
+// print user inputs and computer inputs
+void print_inputs(int user_inputs[], int computer_inputs[], int user_inputs_length, int computer_inputs_length)
+{
+    printf("User inputs: ");
+    for (int i = 0; i < user_inputs_length; i++)
+    {
+        printf("%d ", user_inputs[i]);
+    }
+    printf("\n");
+    printf("Computer inputs: ");
+    for (int i = 0; i < computer_inputs_length; i++)
+    {
+        printf("%d ", computer_inputs[i]);
+    }
+    printf("\n");
+}
+
+// Super Lotto game function
+void super_lotto()
+{
+    game(54, &points.super_loto_points, &stats.super_loto_statistics, 2, 6, 6, "Super Lotto", 2, 0);
+}
+
+// Digital Lotto game function
+void digital_lotto()
+{
+    game(49, &points.digital_loto_points, &stats.digital_loto_statistics, 2, 6, 6, "Digital Lotto", 2, 0);
+}
+
+// Chance game function
+void chance_ball()
+{
+
+    printf("-------------------Chance Ball Game-------------------\n");
+    int length = 5;
+    int ball[length];
+    int computer[length];
+    printf("+1 number: ");
+    int one_plus = get_int_by_range(0, 14);
+    int computer_one_plus = rand() % (14 - 0 + 1) + 0;
+    add_statistics(&stats.chance_ball_one_plus_statistics, &computer_one_plus, 1);
+    get_int_array_by_range(ball, length, 1, 34);
+    generate_random_array(computer, length, 1, 34);
+    add_statistics(&stats.chance_ball_statistics, computer, length);
+    short_by_int_array(ball, length);
+    short_by_int_array(computer, length);
+
+    print_inputs(ball, computer, length, length);
+    printf("Computer +1 number: %d\n", computer_one_plus);
+    printf("Matches:");
+    int matches = compare_int_arrays(ball, computer, length, length);
+    if (one_plus == computer_one_plus)
+    {
+        matches++;
+    }
+    printf("\n");
+    printf("%s: %d\n", "Number of matches", matches);
+    printf("%s: %d\n", "Points", calculate_points(matches, 2, 1));
+    points.chhance_ball_points += calculate_points(matches, 2, 1);
+    printf("%s: %d\n", "Total points", total_points(points));
+}
+
+// Number Ten game function
+void number_ten()
+{
+    game(80, &points.number_ten_points, &stats.number_ten_statistics, 2, 10, 22, "Number Ten", 5, 2);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------Menu---------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
+// Main menu function
+void main_menu()
+{
+    printf("-------------------Main Menu-------------------\n");
+    printf("1. Games\n");
+    printf("2. Statistics\n");
+    printf("3. Exit\n");
+    printf("Choose an option: ");
+    int option = get_int_by_range(1, 3);
+    system("cls");
+    switch (option)
+    {
+    case 1:
+        games_menu();
+        break;
+    case 2:
+        statistics_menu();
+        break;
+    case 3:
+        free_memory();
+        exit(0);
+    default:
+        printf("Invalid option!\n");
+        main_menu();
+        break;
+    }
+}
+
+// Games menu function
+void games_menu()
+{
+    printf("-------------------Games Menu-------------------\n");
+    printf("1. Super Lotto\n");
+    printf("2. Digital Lotto\n");
+    printf("3. Chance Ball\n");
+    printf("4. Number Ten\n");
+    printf("5. Back\n");
+    printf("Total points: %d\n", total_points(points));
+    printf("Choose an option: ");
+    int option = get_int_by_range(1, 5);
+    system("cls");
+    switch (option)
+    {
+    case 1:
+        super_lotto();
+        break;
+    case 2:
+        digital_lotto();
+        break;
+    case 3:
+        chance_ball();
+        break;
+    case 4:
+        number_ten();
+        break;
+    case 5:
+        main_menu();
+        break;
+    default:
+        printf("Invalid option!\n");
+        games_menu();
+        break;
+    }
+}
+
+// Statistics menu function
+void statistics_menu()
+{
+    printf("-------------------Statistics Menu-------------------\n");
+    printf("1. Super Lotto Statistics\n");
+    printf("2. Digital Lotto Statistics\n");
+    printf("3. Chance Ball Statistics\n");
+    printf("4. Number Ten Statistics\n");
+    printf("5. Back\n");
+    printf("Choose an option: ");
+    int option = get_int_by_range(1, 5);
+    system("cls");
+    switch (option)
+    {
+    case 1:
+        print_statistics(stats.super_loto_statistics);
+        break;
+    case 2:
+        print_statistics(stats.digital_loto_statistics);
+        break;
+    case 3:
+        print_statistics(stats.chance_ball_statistics);
         printf("\n");
+        printf("+1 statistics:\n");
+        print_statistics(stats.chance_ball_one_plus_statistics);
+        break;
+    case 4:
+        print_statistics(stats.number_ten_statistics);
+        break;
+    case 5:
+        main_menu();
+        break;
+    default:
+        printf("Invalid option!\n");
+        statistics_menu();
+        break;
     }
-
-    for (int l = 0; l < 22; ++l) {
-        for (int j = 0; j <= 80; ++j) {
-            if (rastgele[l] == j)
-                istatistik[oyun][j]++;
-        }
-    }
-//------------------------------hangi sayıların tuttuğu-----------------------------------------------
-    tutanlar(rastgele, sayilar, 10, 22);
-    int carpim = 1;
-    if (sayac > 5) {
-        for (int i = 0; i < (sayac - 2); i++) {
-            carpim = carpim * 2;
-        }
-        puanAnlik = carpim;
-    } else if (sayac == 0) {
-        puanAnlik = 8;
-    }
-
-    puan += puanAnlik;
-    puanOnNumara += puanAnlik;
-    printf("%d tane tutturunuz\n", sayac);
-    printf("----------------\n");
-    printf("bu elki puaniniz:%d\n", puanAnlik);
-
-    printf("simdiye kadarki on numara puaniniz:%d\n", puanOnNumara);//kaç puan aldığı
-    tekrar(oyun);
-}
-
-//------------------------------SAYISAL VE SÜPER LOTO FONKSİYONU--------------------------------------
-void Loto(int ust) {
-    int oyun, i, sayac = 0, sayilar[6], rastgele[6];
-
-    if (ust == 49) {
-        printf("SAYISAL LOTO\n---------------\n");
-        oyun = 1;
-    } else if (ust == 54) {
-        printf("SUPER LOTO\n---------------\n");
-        oyun = 4;
-    }
-//--------------------------------kullanıcıdan alınan sayı-------------------------------------------
-    sayial(sayilar, 6, ust);
-    rastgeleSayiUretimi(rastgele, ust, 6);
-//------------------------------tutan sayıların kontrol edilmesi-------------------------------------
-    printf("----------------\n");
-    sayac = 0;
-    for (i = 0; i < 6; ++i) {
-        for (int j = 0; j < 6; ++j) {
-            if (rastgele[j] == sayilar[i]) {
-                sayac++;//kaç tane tuttuğu
-            }
-        }
-    }
-    //puan hesap fonksyonu
-    int carpim = 1;
-    if (sayac > 2) {
-        for (int i = 0; i < (sayac + 2); i++) {
-            carpim = carpim * 2;
-        }
-        puanAnlik = carpim;
-    }
-    if (ust == 49)
-        puanSayisalLoto += puanAnlik;
-    else if (ust == 54)
-        puanSuperLoto += puanAnlik;
-    puan += puanAnlik;
-//-------------------------------istatistik hesaplama-------------------------------
-    for (int l = 0; l < 6; ++l) {
-        for (int j = 0; j <= ust; ++j) {
-            if (rastgele[l] == j)
-                istatistik[oyun][j]++;
-        }
-    }
-//----------------------------------ekrana bastırma----------------------------
-    for (int i = 0; i < 6; ++i) //sayıları yazdırma
-    {
-        printf("k=%d\tb=%d\n", sayilar[i], rastgele[i]);
-    }
-//------------------------------hangi sayıların tuttuğu-----------------------------------------------
-    tutanlar(rastgele, sayilar, 6, 6);
-    printf("%d tane tutturunuz\n", sayac);
-    printf("----------------\n");
-    printf("bu elki puaniniz:%d\n", puanAnlik);
-    if (ust == 49) {
-        printf("simdiye kadarki sayisal loto puaniniz:%d\n", puanSayisalLoto);//kaç puan aldığı
-    } else {
-        printf("simdiye kadarki super loto puaniniz:%d\n", puanSuperLoto);
-    }
-//---------------------------tekrar oynamak istemesi sorulması------------------------
-    tekrar(oyun);
 }
